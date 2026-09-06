@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>Priya AI | Voice News Assistant</title>
+
+    <meta name="color-scheme" content="dark light">
+
+    <!-- Set theme before paint to avoid a flash of the wrong theme -->
+    <script>
+        (function () {
+            try {
+                const saved = localStorage.getItem("priya-theme");
+                const theme = saved || "dark";
+                document.documentElement.setAttribute("data-theme", theme);
+            } catch (e) {
+                document.documentElement.setAttribute("data-theme", "dark");
+            }
+        })();
+    </script>
+
+    <link
+        rel="stylesheet"
+        href="/app/styles.css?v=20260813-2">
+
+</head>
+
+<body class="idle">
+
+    <!-- ========================= -->
+    <!-- TOP BAR -->
+    <!-- ========================= -->
+
+    <header class="topbar">
+
+        <div class="logo">
+
+            <div class="logo-circle">
+                PA
+            </div>
+
+            <div>
+
+                <h1>Priya AI</h1>
+
+                <p>
+                    Your Intelligent Voice News Assistant
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="top-right">
+
+            <div id="clock">
+                --:--
+            </div>
+
+            <div class="theme-toggle" id="theme-toggle" role="group" aria-label="Theme">
+
+                <button type="button" data-theme-choice="light" aria-label="Light mode" title="Light">
+                    Light
+                </button>
+
+                <button type="button" data-theme-choice="dark" aria-label="Dark mode" title="Dark">
+                    Dark
+                </button>
+
+                <button type="button" data-theme-choice="system" aria-label="System theme" title="System">
+                    Auto
+                </button>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <!-- ========================= -->
+    <!-- MAIN -->
+    <!-- ========================= -->
+
+    <main class="container">
+
+        <!-- ===================== -->
+        <!-- HERO -->
+        <!-- ===================== -->
+
+        <section class="hero-card">
+
+            <div class="orb-area">
+
+                <div
+                    id="orb"
+                    class="orb">
+
+                    <div class="orb-core"></div>
+
+                    <div class="ring ring1"></div>
+
+                    <div class="ring ring2"></div>
+
+                    <div class="ring ring3"></div>
+
+                </div>
+
+                <div
+                    id="wave"
+                    class="wave hidden">
+
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+
+                </div>
+
+            </div>
+
+            <h2 id="status">
+
+                Ready
+
+            </h2>
+
+            <p class="hero-text">
+
+                Say
+
+                <strong>
+
+                    "Hey Priya"
+
+                </strong>
+
+                or ask anything using voice or text.
+
+            </p>
+
+            <div class="buttons">
+
+                <button id="start-priya">
+
+                    Start listening
+
+                </button>
+
+                <button id="stop-priya">
+
+                    Stop
+
+                </button>
+
+                <button id="test-voice">
+
+                    Test voice
+
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- ===================== -->
+        <!-- CHAT -->
+        <!-- ===================== -->
+
+        <section class="chat-card">
+
+            <div class="section-header">
+
+                <h2>
+
+                    Conversation
+
+                </h2>
+
+                <button id="clear-chat" type="button">
+
+                    Clear chat
+
+                </button>
+
+            </div>
+
+            <div
+                id="chat-window"
+                class="chat-window">
+
+                <div
+                    id="question-display"
+                    class="question-display hidden">
+
+                    Waiting for your question...
+
+                </div>
+
+                <div
+                    id="detected-category"
+                    class="category-chip hidden">
+
+                </div>
+
+                <div class="message ai">
+
+                    <div class="avatar">AI</div>
+
+                    <div class="bubble">
+
+                        <div
+                            id="answer">
+
+                            Hello. I'm Priya. Ask me about AI, today's news,
+                            Bengaluru, world news, sports, business, finance,
+                            technology, or the stock market.
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div
+                    id="thinking-indicator"
+                    class="thinking-dots hidden">
+
+                    <span></span>
+                    <span></span>
+                    <span></span>
+
+                </div>
+
+            </div>
+
+            <button id="jump-to-latest" class="jump-to-latest hidden" type="button">
+                New messages · Jump to latest
+            </button>
+
+        </section>
+
+
+        <!-- ===================== -->
+        <!-- HEADLINES -->
+        <!-- ===================== -->
+
+        <section class="headlines-card">
+
+            <div class="section-header">
+
+                <h2>
+
+                    Trending headlines
+
+                </h2>
+
+                <button id="refresh">
+
+                    Refresh
+
+                </button>
+
+            </div>
+
+            <div
+
+                id="headlines"
+
+                class="headlines-grid">
+
+            </div>
+
+        </section>
+
+
+        <!-- ===================== -->
+        <!-- MARKET -->
+        <!-- ===================== -->
+
+        <section class="market-card">
+
+            <div class="section-header">
+
+                <h2>
+
+                    Market overview
+
+                </h2>
+
+                <button id="refresh-market">
+
+                    Refresh
+
+                </button>
+
+            </div>
+
+            <div
+
+                id="market-grid"
+
+                class="market-grid">
+
+                <div class="market-placeholder">
+
+                    Loading market updates...
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- ========================= -->
+    <!-- FLOATING COMMAND BAR -->
+    <!-- ========================= -->
+
+    <section class="input-card">
+
+        <div id="image-preview" class="image-preview hidden">
+            <img id="image-preview-img" alt="Selected image preview">
+            <button id="remove-image" type="button" aria-label="Remove selected image">×</button>
+        </div>
+
+        <button id="attach-image" class="attach-button" type="button" aria-label="Attach an image">+</button>
+        <input id="image-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+
+        <form id="question-form" class="input-wrapper">
+
+            <input
+
+                id="question"
+
+                name="question"
+
+                type="text"
+
+                autocomplete="off"
+
+                placeholder="Ask Priya anything...">
+
+        </form>
+
+        <button type="submit" form="question-form" aria-label="Send">
+
+            Send
+
+        </button>
+
+    </section>
+
+
+    <!-- ========================= -->
+    <!-- FOOTER -->
+    <!-- ========================= -->
+
+    <footer>
+
+        <div class="footer-content">
+
+            <span>
+
+                Powered by
+
+            </span>
+
+            <strong>
+
+                FastAPI
+
+            </strong>
+
+
+            <strong>
+
+                Ollama
+
+            </strong>
+
+
+            <strong>
+
+                Qwen
+
+            </strong>
+
+
+            <strong>
+
+                Kokoro TTS
+
+            </strong>
+
+
+            <strong>
+
+                MongoDB
+
+            </strong>
+
+        </div>
+
+    </footer>
+
+
+    <!-- ========================= -->
+    <!-- JAVASCRIPT -->
+    <!-- ========================= -->
+
+    <script src="/app/app.js?v=20260813-2"></script>
+
+    <script src="/app/voice.js?v=20260813-2"></script>
+
+</body>
+
+</html>
