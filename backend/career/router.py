@@ -2,6 +2,7 @@ from fastapi import APIRouter,File,HTTPException,UploadFile
 from pydantic import BaseModel,Field
 from .core import add_candidate,get_candidate,job,job_match,profile,score,text_from_pdf,interview_question,evaluate_answer,save_candidate
 from .schemas import InterviewAnswerRequest, InterviewStartRequest
+from .storage import CareerStorageError
 router=APIRouter(prefix="/career",tags=["career"]); MAX=5*1024*1024
 class Session(BaseModel): session_id:str
 class JD(Session): description:str=Field(max_length=30000)
@@ -12,9 +13,13 @@ async def upload(resume:UploadFile=File(...)):
     if not data or len(data)>MAX: raise HTTPException(413,"Resume must be a non-empty PDF under 5 MB.")
     try: text=text_from_pdf(data)
     except ValueError as e: raise HTTPException(422,str(e)) from e
-    p=profile(text); sid=add_candidate(p,text); return {"session_id":sid,"candidate_session_id":sid,"resume":p}
+    p=profile(text)
+    try: sid=add_candidate(p,text)
+    except CareerStorageError as e: raise HTTPException(503,"Career Coach storage is temporarily unavailable. Please try again.") from e
+    return {"session_id":sid,"candidate_session_id":sid,"resume":p}
 def candidate_or_404(sid):
-    c=get_candidate(sid)
+    try: c=get_candidate(sid)
+    except CareerStorageError as e: raise HTTPException(503,"Career Coach storage is temporarily unavailable. Please try again.") from e
     if not sid: raise HTTPException(400,"Please upload your resume first.")
     if not c: raise HTTPException(404,"Resume session not found. Please upload your resume again.")
     return c
@@ -24,7 +29,10 @@ def analyze(r:Session):
 @router.post("/job/parse")
 def parse(r:JD):
     if not r.description.strip(): raise HTTPException(400,"Job description cannot be empty.")
-    c=candidate_or_404(r.session_id); c["job"]=job(r.description); save_candidate(r.session_id,c); return c["job"]
+    c=candidate_or_404(r.session_id); c["job"]=job(r.description)
+    try: save_candidate(r.session_id,c)
+    except CareerStorageError as e: raise HTTPException(503,"Career Coach storage is temporarily unavailable. Please try again.") from e
+    return c["job"]
 @router.post("/job/match")
 def match(r:Session):
     c=candidate_or_404(r.session_id)
