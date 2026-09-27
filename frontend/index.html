@@ -321,6 +321,22 @@
 
         </section>
 
+        <section class="career-card">
+            <div class="section-header"><h2>Career Coach</h2><span id="career-status">Upload a PDF resume to begin.</span></div>
+            <input id="career-upload" type="file" accept="application/pdf">
+            <button id="career-analyze" type="button">Analyze Resume</button>
+            <p id="resume-score"></p>
+            <label for="job-description">Target job description</label>
+            <textarea id="job-description" rows="6" placeholder="Paste a job description (at least 20 characters)"></textarea>
+            <button id="career-match" type="button">Analyze Match</button>
+            <pre id="job-match"></pre>
+            <button id="interview-start" type="button">Start Mock Interview</button>
+            <p id="interview-question"></p>
+            <textarea id="interview-text" rows="4" placeholder="Type your interview answer"></textarea>
+            <button id="interview-answer" type="button">Submit Answer</button>
+            <p id="interview-feedback"></p>
+        </section>
+
     </main>
 
 
@@ -423,6 +439,7 @@
     <script src="/app/app.js?v=20260813-2"></script>
 
     <script src="/app/voice.js?v=20260813-2"></script>
+    <script src="/app/career.js"></script>
 
 </body>
 

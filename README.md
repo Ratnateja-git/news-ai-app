@@ -1,6 +1,14 @@
-# Priya News AI
+# Priya AI
 
-A local, voice-first news assistant built with FastAPI and Ollama/Gemma 3. Headlines are formatted directly from RSS; Gemma is only used for explicit explanations, follow-ups, and uploaded-image analysis.
+A local, voice-first assistant for news and career growth. Headlines are formatted directly from RSS; Gemma is used only for explicit explanations, follow-ups, and uploaded-image analysis.
+
+## Career Coach
+
+Career Coach adds private, in-memory PDF resume analysis, the transparent **Priya Resume Score**, job-description matching, skill-gap suggestions, non-fabricating resume-tailoring guidance, and a resume-aware mock interview with adaptive follow-ups and a deterministic final scorecard. Scores are heuristic estimates, never company ATS results.
+
+Career API endpoints: `POST /career/resume/upload`, `/career/resume/analyze`, `/career/job/parse`, `/career/job/match`, `/career/resume/tailor`, `/career/interview/start`, `/career/interview/answer`, and `GET /career/interview/report/{id}`.
+
+Demo: upload a real PDF resume, analyze it, paste a target job description, view the Priya Job Match Score and gaps, start a mixed interview, answer several questions, then open the report. The service never creates resume facts or metrics; add measurable results only when they are real.
 
 ## Setup
 

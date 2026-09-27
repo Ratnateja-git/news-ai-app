@@ -29,6 +29,7 @@ from .session import get_state, update_state
 from .tts import generate_speech, get_kokoro
 from .image_search import search_images
 from .vision import VisionError, analyze_image
+from .career.router import router as career_router
 
 
 def _answer_payload(question: str, answer: str, intent, category: str, mode: str) -> dict:
@@ -55,6 +56,7 @@ app = FastAPI(
     title="Priya News AI API",
     version="2.1.0",
 )
+app.include_router(career_router)
 
 
 @app.on_event("startup")

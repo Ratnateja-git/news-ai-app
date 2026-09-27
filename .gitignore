@@ -11,4 +11,5 @@ __pycache__/
 *.safetensors
 *.bin
 models/
+node_modules/data/*.db
 node_modules/

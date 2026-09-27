@@ -148,7 +148,7 @@ a { color: var(--accent); }
   margin: 0 auto;
   padding: 28px 0 40px;
 }
-.hero-card, .chat-card, .headlines-card, .market-card {
+.hero-card, .chat-card, .headlines-card, .market-card, .career-card {
   min-width: 0;
   padding: clamp(20px, 3vw, 30px);
   border: 1px solid var(--border);
@@ -156,6 +156,9 @@ a { color: var(--accent); }
   background: var(--surface);
   box-shadow: var(--shadow);
 }
+.career-card textarea, .career-card input { width:100%; margin:8px 0; padding:9px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--input); color:var(--text); }
+.career-card button { margin:6px 6px 6px 0; padding:8px 12px; border:1px solid var(--accent-strong); border-radius:var(--radius-sm); background:var(--accent); color:#fff; }
+.career-card pre { white-space:pre-wrap; color:var(--muted); }
 
 /* Voice control */
 .hero-card {

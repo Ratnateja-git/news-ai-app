@@ -11,3 +11,4 @@ requests
 ddgs
 Pillow
 python-multipart
+pypdf>=5.0,<7.0

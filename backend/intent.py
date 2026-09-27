@@ -454,6 +454,20 @@ def analyze_question(
 ) -> Intent:
 
     text = question.lower().strip()
+    # Career phrases are checked before news/general routing, so existing
+    # headline and knowledge intents retain their current behavior.
+    career_patterns = (
+        ("resume_analyze", ("analyze my resume", "review my resume")),
+        ("resume_tailor", ("tailor my resume", "improve my resume")),
+        ("job_match", ("match my resume", "compare my resume")),
+        ("skill_gap", ("skills am i missing", "skill gaps")),
+        ("interview_start", ("start my mock interview", "start an interview")),
+        ("interview_continue", ("continue the interview", "continue my interview")),
+        ("interview_report", ("how did i perform", "interview report")),
+    )
+    for kind, phrases in career_patterns:
+        if any(phrase in text for phrase in phrases):
+            return Intent(kind=kind, category="career", location=None, detailed=False, topic=None)
        
     # --------------------------------------------------------
     # 1. ASSISTANT QUESTIONS
