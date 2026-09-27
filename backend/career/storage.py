@@ -1,13 +1,14 @@
 """Small SQLite repository for reload-safe Career Coach candidate sessions."""
 import json
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parents[2] / "data" / "priya_career.db"
+DB_PATH = Path(os.getenv("PRIYA_CAREER_DB", Path(__file__).resolve().parents[2] / "data" / "priya_career.db"))
 
 def _db():
-    DB_PATH.parent.mkdir(exist_ok=True)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.execute("CREATE TABLE IF NOT EXISTS candidate_sessions (id TEXT PRIMARY KEY, profile TEXT NOT NULL, analysis TEXT NOT NULL, job TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)")
     return conn

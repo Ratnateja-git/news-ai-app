@@ -9,6 +9,7 @@ let currentAudio = null;
 let stopped = false;
 let isListening = false;
 let activeAskController = null;
+let ttsUnavailable = false;
 let activeTtsController = null;
 let currentAudioUrl = null;
 let resolveCurrentPlayback = null;
@@ -1017,6 +1018,11 @@ function playSpeechAudio(audioBlob, runId, timing = null, chunkNumber = null) {
 
 async function speak(text, timing = null) {
 
+    if (ttsUnavailable) {
+        setStatus("Voice output is unavailable on this deployment.");
+        return;
+    }
+
     const chunks = splitSpeechChunks(text);
     if (!chunks.length) return;
 
@@ -1084,7 +1090,12 @@ async function speak(text, timing = null) {
         if (error.name === "AbortError" || runId !== speechRunId) return;
         console.error("Kokoro TTS error:", error);
         document.querySelector("#wave")?.classList.add("hidden");
-        setStatus("Priya voice could not be played.");
+        if (error.message === "Voice/TTS is unavailable in this deployment because the Kokoro model is not installed.") {
+            ttsUnavailable = true;
+            setStatus("Voice output is unavailable on this deployment.");
+        } else {
+            setStatus("Priya voice could not be played.");
+        }
         setOrbState("offline");
     } finally {
         if (activeTtsController === controller) {

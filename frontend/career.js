@@ -4,7 +4,7 @@
   let sessionId = sessionStorage.getItem("priya_candidate_session_id"), interviewId = null;
   const byId = id => document.querySelector(`#${id}`);
   const show = (id, value) => { const el=byId(id); if (el) el.textContent=value; };
-  async function api(path, options={}) { const r=await fetch(path,options); const d=await r.json(); if(!r.ok) throw new Error(d.detail||"Career request failed."); return d; }
+  async function api(path, options={}) { const r=await fetch(window.priyaApiUrl ? window.priyaApiUrl(path) : path,options); const d=await r.json(); if(!r.ok) throw new Error(d.detail||"Career request failed."); return d; }
   const requireSession = () => { if (!sessionId) throw new Error("Please upload your resume first."); };
   if (sessionId) show("career-status", "Resume session restored. You can analyze a job description.");
   byId("career-upload")?.addEventListener("change", async e => { try { const f=e.target.files[0]; if(!f) return; const form=new FormData(); form.append("resume",f); const d=await api("/career/resume/upload",{method:"POST",body:form}); sessionId=d.candidate_session_id || d.session_id; sessionStorage.setItem("priya_candidate_session_id", sessionId); show("career-status","Resume ready. Click Analyze Resume."); } catch(e) { show("career-status",e.message); }});

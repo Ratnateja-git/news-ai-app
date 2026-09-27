@@ -6,14 +6,16 @@ touch Ollama — see main.py for the routing decision.
 """
 
 import json
+import os
 import re
 import time
 
 import requests
 
-OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
-OLLAMA_GENERATE_URL = "http://127.0.0.1:11434/api/generate"
-MODEL_NAME = "gemma3:4b"
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+OLLAMA_URL = f"{OLLAMA_BASE_URL}/api/chat"
+OLLAMA_GENERATE_URL = f"{OLLAMA_BASE_URL}/api/generate"
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "gemma3:4b")
 
 
 def warm_ollama() -> None:

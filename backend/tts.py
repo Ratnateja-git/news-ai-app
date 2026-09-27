@@ -1,13 +1,20 @@
 """Kokoro local text-to-speech integration for Priya."""
 
+import os
 import re
 import time
 from io import BytesIO
 from pathlib import Path
 from threading import Lock
 
-import soundfile as sf
-from kokoro_onnx import Kokoro
+try:
+    import soundfile as sf
+    from kokoro_onnx import Kokoro
+    _TTS_IMPORT_ERROR = None
+except ImportError as error:  # Render can run without local voice support.
+    sf = None
+    Kokoro = None
+    _TTS_IMPORT_ERROR = error
 
 from .identity import CREATOR_NAME, CREATOR_SPEECH_NAME
 
@@ -48,7 +55,43 @@ _kokoro = None
 _kokoro_lock = Lock()
 
 
-def get_kokoro() -> Kokoro:
+TTS_UNAVAILABLE_DETAIL = (
+    "Voice/TTS is unavailable in this deployment because the Kokoro model is not installed."
+)
+
+
+class TTSUnavailableError(RuntimeError):
+    """Raised when this deployment cannot provide local Kokoro speech."""
+
+
+def _tts_disabled_by_environment() -> bool:
+    """Allow deployments to opt out without changing local defaults."""
+    return os.getenv("PRIYA_TTS_ENABLED", "").strip().lower() in {
+        "0", "false", "no", "off",
+    }
+
+
+def tts_is_available() -> bool:
+    """Return whether Kokoro can be loaded without attempting initialization."""
+    return (
+        not _tts_disabled_by_environment()
+        and Kokoro is not None
+        and sf is not None
+        and MODEL_PATH.is_file()
+        and VOICES_PATH.is_file()
+    )
+
+
+def _ensure_tts_available() -> None:
+    if _tts_disabled_by_environment():
+        raise TTSUnavailableError("Kokoro TTS is disabled by PRIYA_TTS_ENABLED.")
+    if Kokoro is None or sf is None:
+        raise TTSUnavailableError("Kokoro TTS dependencies are unavailable.") from _TTS_IMPORT_ERROR
+    if not MODEL_PATH.is_file() or not VOICES_PATH.is_file():
+        raise TTSUnavailableError(TTS_UNAVAILABLE_DETAIL)
+
+
+def get_kokoro():
     """Load Kokoro once and reuse it.
 
     Thread-safe double-checked locking: the outer check is lock-free so
@@ -62,6 +105,8 @@ def get_kokoro() -> Kokoro:
 
     global _kokoro
 
+    _ensure_tts_available()
+
     if _kokoro is not None:
         print("[PERF][TTS] model already loaded")
         return _kokoro
@@ -71,22 +116,14 @@ def get_kokoro() -> Kokoro:
         if _kokoro is None:
             load_started = time.perf_counter()
 
-            if not MODEL_PATH.exists():
-                raise FileNotFoundError(
-                    f"Kokoro model not found: {MODEL_PATH}"
-                )
-
-            if not VOICES_PATH.exists():
-                raise FileNotFoundError(
-                    f"Kokoro voices file not found: {VOICES_PATH}"
-                )
-
             print("Loading Kokoro TTS model...")
-
-            _kokoro = Kokoro(
-                str(MODEL_PATH),
-                str(VOICES_PATH),
-            )
+            try:
+                _kokoro = Kokoro(
+                    str(MODEL_PATH),
+                    str(VOICES_PATH),
+                )
+            except (OSError, RuntimeError, ValueError) as error:
+                raise TTSUnavailableError("Kokoro TTS could not be initialized.") from error
 
             print("Kokoro TTS model loaded.")
             print(f"[PERF][TTS] model load: {time.perf_counter() - load_started:.3f}s")

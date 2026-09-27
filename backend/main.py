@@ -2,6 +2,8 @@
 
 import json
 import time
+import logging
+from pathlib import Path
 from threading import Thread
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
@@ -26,7 +28,15 @@ from .market import (
 )
 from .news import build_detail_context, find_matching_article, get_top_headlines, fetch_topic_news
 from .session import get_state, update_state
-from .tts import generate_speech, get_kokoro
+from .tts import (
+    TTS_UNAVAILABLE_DETAIL,
+    TTSUnavailableError,
+    generate_speech,
+    get_kokoro,
+    tts_is_available,
+    MODEL_PATH,
+    VOICES_PATH,
+)
 from .image_search import search_images
 from .vision import VisionError, analyze_image
 from .career.router import router as career_router
@@ -57,13 +67,23 @@ app = FastAPI(
     version="2.1.0",
 )
 app.include_router(career_router)
+log = logging.getLogger(__name__)
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
 
 @app.on_event("startup")
 def preload_tts_model() -> None:
-    """Warm the existing Kokoro singleton before the first voice request."""
-
-    get_kokoro()
+    """Warm optional local services without making deployment depend on them."""
+    if not tts_is_available():
+        if not MODEL_PATH.is_file() or not VOICES_PATH.is_file():
+            log.warning("[TTS] Kokoro model files not found; TTS disabled for this deployment.")
+        else:
+            log.warning("[TTS] Kokoro TTS is disabled or its dependencies are unavailable.")
+    else:
+        try:
+            get_kokoro()
+        except TTSUnavailableError as error:
+            log.warning("[TTS] Kokoro warm-up skipped; TTS disabled: %s", error)
     Thread(target=warm_ollama, name="ollama-warmup", daemon=True).start()
 
 
@@ -763,21 +783,18 @@ def text_to_speech(
             },
         )
 
-    except FileNotFoundError as error:
+    except TTSUnavailableError as error:
 
         raise HTTPException(
-            status_code=500,
-            detail=str(error),
+            status_code=503,
+            detail=TTS_UNAVAILABLE_DETAIL,
         ) from error
 
     except Exception as error:
 
         raise HTTPException(
             status_code=500,
-            detail=(
-                "Kokoro could not generate speech: "
-                f"{error}"
-            ),
+            detail="Kokoro could not generate speech.",
         ) from error
 
 
@@ -800,11 +817,18 @@ def test_tts():
             media_type="audio/wav",
         )
 
+    except TTSUnavailableError as error:
+
+        raise HTTPException(
+            status_code=503,
+            detail=TTS_UNAVAILABLE_DETAIL,
+        ) from error
+
     except Exception as error:
 
         raise HTTPException(
             status_code=500,
-            detail=str(error),
+            detail="Kokoro could not generate speech.",
         ) from error
 
 
@@ -815,7 +839,7 @@ def test_tts():
 app.mount(
     "/app",
     StaticFiles(
-        directory="frontend",
+        directory=FRONTEND_DIR,
         html=True,
     ),
     name="frontend",
