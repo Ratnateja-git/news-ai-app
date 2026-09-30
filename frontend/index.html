@@ -28,7 +28,7 @@
 
     <link
         rel="stylesheet"
-        href="/app/styles.css?v=20260813-2">
+        href="/app/styles.css?v=20260929-8">
 
 </head>
 
@@ -221,9 +221,7 @@
                         <div
                             id="answer">
 
-                            Hello. I'm Priya. Ask me about AI, today's news,
-                            Bengaluru, world news, sports, business, finance,
-                            technology, or the stock market.
+                            Hello, I'm Priya. How can I help you?
 
                         </div>
 
@@ -247,8 +245,54 @@
                 New messages · Jump to latest
             </button>
 
+            <section class="input-card" aria-label="Ask Priya">
+
+                <div id="image-preview" class="image-preview hidden">
+                    <img id="image-preview-img" alt="Selected image preview">
+                    <button id="remove-image" type="button" aria-label="Remove selected image">×</button>
+                </div>
+
+                <button id="attach-image" class="attach-button" type="button" aria-label="Attach an image">+</button>
+                <input id="image-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+
+                <form id="question-form" class="input-wrapper">
+                    <input
+                        id="question"
+                        name="question"
+                        type="text"
+                        autocomplete="off"
+                        placeholder="Ask Priya anything...">
+                </form>
+
+                <button type="submit" form="question-form" aria-label="Send">Send</button>
+
+            </section>
+
         </section>
 
+
+        <section class="career-card">
+            <div class="section-header"><h2>Resume Analyzer</h2><span id="career-status">Upload a PDF resume to begin.</span></div>
+            <input id="career-upload" type="file" accept="application/pdf">
+            <button id="career-analyze" type="button">Analyze Resume</button>
+            <p id="resume-score"></p>
+            <pre id="resume-details"></pre>
+            <label for="job-description">Target job description</label>
+            <textarea id="job-description" rows="6" placeholder="Paste a job description (at least 20 characters)"></textarea>
+            <button id="career-match" type="button">Analyze Match</button>
+            <div id="jd-conflict" class="jd-conflict hidden" role="alert"><strong>⚠️ JD Requirement Conflict</strong><p id="jd-conflict-details"></p><p id="jd-conflict-recommendation"></p></div>
+            <pre id="job-match"></pre>
+            <button id="interview-start" type="button">🎤 Start Mock Interview</button>
+            <div id="interview-practice" class="interview-practice hidden" aria-live="polite">
+                <h3>Interview Questions</h3>
+                <ol id="interview-questions"></ol>
+                <p id="interview-question" class="interview-current"></p>
+                <div class="interview-actions"><button id="interview-ask" type="button">🔊 Ask Me</button><button id="interview-replay" type="button">▶️ Replay</button><button id="interview-next" type="button">⏭️ Next Question</button><button id="interview-stop" type="button">⏹️ Stop</button></div>
+            </div>
+            <textarea id="interview-text" rows="4" placeholder="Type your interview answer"></textarea>
+            <button id="interview-answer" type="button">Submit Answer</button>
+            <p id="interview-feedback"></p>
+        </section>
 
         <!-- ===================== -->
         <!-- HEADLINES -->
@@ -321,62 +365,7 @@
 
         </section>
 
-        <section class="career-card">
-            <div class="section-header"><h2>Career Coach</h2><span id="career-status">Upload a PDF resume to begin.</span></div>
-            <input id="career-upload" type="file" accept="application/pdf">
-            <button id="career-analyze" type="button">Analyze Resume</button>
-            <p id="resume-score"></p>
-            <label for="job-description">Target job description</label>
-            <textarea id="job-description" rows="6" placeholder="Paste a job description (at least 20 characters)"></textarea>
-            <button id="career-match" type="button">Analyze Match</button>
-            <pre id="job-match"></pre>
-            <button id="interview-start" type="button">Start Mock Interview</button>
-            <p id="interview-question"></p>
-            <textarea id="interview-text" rows="4" placeholder="Type your interview answer"></textarea>
-            <button id="interview-answer" type="button">Submit Answer</button>
-            <p id="interview-feedback"></p>
-        </section>
-
     </main>
-
-
-    <!-- ========================= -->
-    <!-- FLOATING COMMAND BAR -->
-    <!-- ========================= -->
-
-    <section class="input-card">
-
-        <div id="image-preview" class="image-preview hidden">
-            <img id="image-preview-img" alt="Selected image preview">
-            <button id="remove-image" type="button" aria-label="Remove selected image">×</button>
-        </div>
-
-        <button id="attach-image" class="attach-button" type="button" aria-label="Attach an image">+</button>
-        <input id="image-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-
-        <form id="question-form" class="input-wrapper">
-
-            <input
-
-                id="question"
-
-                name="question"
-
-                type="text"
-
-                autocomplete="off"
-
-                placeholder="Ask Priya anything...">
-
-        </form>
-
-        <button type="submit" form="question-form" aria-label="Send">
-
-            Send
-
-        </button>
-
-    </section>
 
 
     <!-- ========================= -->
@@ -439,8 +428,8 @@
     <script src="/app/config.js"></script>
     <script src="/app/app.js?v=20260813-2"></script>
 
-    <script src="/app/voice.js?v=20260813-2"></script>
-    <script src="/app/career.js"></script>
+    <script src="/app/voice.js?v=20260929-6"></script>
+    <script src="/app/career.js?v=20260930-jd-agents"></script>
 
 </body>
 

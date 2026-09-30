@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from threading import Thread
 
+import requests
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -13,7 +14,7 @@ from pydantic import BaseModel
 
 from .database import check_connection, get_stored_news
 from .general import get_general_context, get_telugu_movie_recommendation_context
-from .intent import analyze_question, classify_casual, get_assistant_response, get_conversational_response
+from .intent import Intent, analyze_question, classify_casual, get_assistant_response, get_conversational_response, is_interview_learning_request
 from .llm import ask_best_stock_model, ask_chat_model, ask_general_model, ask_market_model, ask_model, ask_telugu_movie_recommendation, headline_response, warm_ollama
 from .memory import add_image_turn, add_turn, clear_memory, format_recent_context, get_last_article, resolve_reference
 from .market import (
@@ -40,6 +41,7 @@ from .tts import (
 from .image_search import search_images
 from .vision import VisionError, analyze_image
 from .career.router import router as career_router
+from .career.core import career_chat_context
 
 
 def _answer_payload(question: str, answer: str, intent, category: str, mode: str) -> dict:
@@ -128,6 +130,32 @@ def health_check():
     return {
         "status": "ok",
         "service": "Priya News AI",
+    }
+
+
+@app.get("/api/system-status")
+def system_status():
+    """Return safe, lightweight local-service status for tunnel diagnostics."""
+    from .llm import MODEL_NAME, OLLAMA_BASE_URL
+
+    ollama_status = "unavailable"
+    try:
+        response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=2)
+        if response.ok:
+            model_names = {
+                str(item.get("name", ""))
+                for item in response.json().get("models", [])
+                if isinstance(item, dict)
+            }
+            ollama_status = "ok" if MODEL_NAME in model_names else "model_missing"
+    except (requests.RequestException, ValueError):
+        pass
+
+    return {
+        "api": "ok",
+        "ollama": ollama_status,
+        "llm_model": MODEL_NAME,
+        "tts": "available" if tts_is_available() else "unavailable",
     }
 
 
@@ -344,6 +372,11 @@ def ask_news(
     category: str | None = Query(
         default=None,
     ),
+    interview_question: str | None = Query(
+        default=None,
+        max_length=2000,
+    ),
+    career_session_id: str | None = Query(default=None, max_length=100),
 ):
 
     request_started = time.perf_counter()
@@ -365,6 +398,15 @@ def ask_news(
         # ----------------------------------------------------
 
         original_question = question
+        active_interview_question = (interview_question or "").strip()
+        if active_interview_question and is_interview_learning_request(question, active_interview_question):
+            intent = Intent(kind="interview_help", category="career", location=None, detailed=False, topic=None)
+            answer = ask_chat_model(
+                question,
+                format_recent_context(),
+                interview_question=active_interview_question,
+            )
+            return _answer_payload(original_question, answer, intent, "career", "interview_help")
         question, clarification = resolve_reference(question)
         if clarification:
             return {
@@ -394,7 +436,7 @@ def ask_news(
             return _answer_payload(original_question, answer, intent, "assistant", "assistant")
         if intent.kind == "casual":
             casual_responses = {
-                "greeting": "Hi! I'm Priya. How can I help you today?",
+                "greeting": "Hello, I'm Priya. How can I help you?",
                 "wellbeing": "I'm doing well and ready to help. What would you like to know?",
                 "thanks": "You're welcome! Anything else I can help with?",
                 "bye": "Goodbye! Talk soon.",
@@ -603,6 +645,9 @@ def ask_news(
         if intent.kind == "chat":
 
             memory_context = format_recent_context()
+            career_context = career_chat_context(career_session_id) if career_session_id else ""
+            if career_context:
+                memory_context = f"{memory_context}\n\n{career_context}".strip()
 
             llm_started = time.perf_counter()
             answer = ask_chat_model(question, memory_context)
@@ -808,8 +853,7 @@ def test_tts():
     try:
 
         audio = generate_speech(
-            "Hello. I am Priya. "
-            "I am ready with today's latest news."
+            "Hello, I'm Priya. How can I help you?"
         )
 
         return StreamingResponse(

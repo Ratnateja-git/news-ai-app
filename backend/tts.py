@@ -25,8 +25,11 @@ from .identity import CREATOR_NAME, CREATOR_SPEECH_NAME
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MODEL_PATH = BASE_DIR / "kokoro-v1.0.onnx"
-VOICES_PATH = BASE_DIR / "voices-v1.0.bin"
+# Local development keeps using the repository root. A deployment can mount
+# private model files elsewhere without copying them into source control.
+KOKORO_DIR = Path(os.getenv("PRIYA_KOKORO_DIR", str(BASE_DIR))).expanduser()
+MODEL_PATH = KOKORO_DIR / "kokoro-v1.0.onnx"
+VOICES_PATH = KOKORO_DIR / "voices-v1.0.bin"
 
 
 # ============================================================
@@ -251,7 +254,7 @@ def test_kokoro() -> bool:
     """Check that Kokoro can generate speech."""
 
     audio = generate_speech(
-        "Hello. I am Priya, your personal news assistant."
+        "Hello, I'm Priya. How can I help you?"
     )
 
     return bool(audio)

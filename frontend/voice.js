@@ -103,10 +103,8 @@ setOrbState("idle");
 // ============================================================
 
 function isNearChatBottom() {
-
-    const page = document.documentElement;
-
-    return window.scrollY + window.innerHeight >= page.scrollHeight - 80;
+    if (!chatContainer) return true;
+    return chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight - 80;
 }
 
 
@@ -121,9 +119,9 @@ function updateJumpToLatestControl() {
 }
 
 
-function scrollChat() {
+function scrollChat(force = false) {
 
-    if (!shouldFollowChat) {
+    if (!force && !shouldFollowChat) {
         updateJumpToLatestControl();
         return;
     }
@@ -133,17 +131,14 @@ function scrollChat() {
     }
 
     chatScrollFrame = requestAnimationFrame(() => {
-        window.scrollTo({
-            top: document.documentElement.scrollHeight,
-            behavior: "auto"
-        });
+        if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
         chatScrollFrame = 0;
         updateJumpToLatestControl();
     });
 }
 
 
-window.addEventListener("scroll", () => {
+chatContainer?.addEventListener("scroll", () => {
 
     if (chatScrollFrame) return;
 
@@ -160,12 +155,7 @@ if (jumpToLatestButton) {
 
     jumpToLatestButton.addEventListener("click", () => {
         shouldFollowChat = true;
-        window.scrollTo({
-            top: document.documentElement.scrollHeight,
-            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-                ? "auto"
-                : "smooth"
-        });
+        if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
         updateJumpToLatestControl();
     });
 }
@@ -322,8 +312,7 @@ function uiAddUser(text) {
 
     if (!chatContainer) return;
 
-    const followPage = isNearChatBottom();
-    shouldFollowChat = followPage;
+    shouldFollowChat = true;
 
     chatContainer.appendChild(
         createMessage(
@@ -332,7 +321,7 @@ function uiAddUser(text) {
         )
     );
 
-    if (followPage) scrollChat();
+    scrollChat(true);
 }
 
 
@@ -349,7 +338,8 @@ function uiAddUserImage(file, text) {
     image.addEventListener("load", () => URL.revokeObjectURL(image.src), { once: true });
     content.prepend(image);
     chatContainer.appendChild(message);
-    if (isNearChatBottom()) scrollChat();
+    shouldFollowChat = true;
+    scrollChat(true);
 }
 
 
@@ -1020,11 +1010,11 @@ async function speak(text, timing = null) {
 
     if (ttsUnavailable) {
         setStatus("Voice output is unavailable on this deployment.");
-        return;
+        return false;
     }
 
     const chunks = splitSpeechChunks(text);
-    if (!chunks.length) return;
+    if (!chunks.length) return false;
 
     console.log("[PERF][VOICE] chunk count: " + chunks.length);
     chunks.forEach((chunk, index) => {
@@ -1085,6 +1075,7 @@ async function speak(text, timing = null) {
             document.querySelector("#wave")?.classList.add("hidden");
             setStatus("Ready");
             setOrbState("idle");
+            return true;
         }
     } catch (error) {
         if (error.name === "AbortError" || runId !== speechRunId) return;
@@ -1097,12 +1088,18 @@ async function speak(text, timing = null) {
             setStatus("Priya voice could not be played.");
         }
         setOrbState("offline");
+        return false;
     } finally {
         if (activeTtsController === controller) {
             activeTtsController = null;
         }
     }
 }
+
+// Optional features use this exact Kokoro playback pipeline instead of
+// creating a browser-speech or alternate TTS path.
+window.priyaSpeak = speak;
+window.priyaStopAudio = stopAudio;
 
 
 
@@ -1113,7 +1110,7 @@ async function speak(text, timing = null) {
 async function greetPriya() {
 
     const greeting =
-        "Hello! I'm Priya. What would you like to know today?";
+        "Hello, I'm Priya. How can I help you?";
 
     uiAddAssistant(
         greeting,
@@ -1216,14 +1213,29 @@ async function askPriya(question) {
             const formData = new FormData();
             formData.append("image", imageFile, imageFile.name);
             formData.append("question", actualQuestion);
-            response = await fetch("/vision/analyze", {
+            response = await fetch(
+                window.priyaApiUrl
+                    ? window.priyaApiUrl("/vision/analyze")
+                    : "/vision/analyze",
+                {
                 method: "POST",
                 body: formData,
                 signal: requestController.signal
-            });
+                }
+            );
         } else {
+            const askParams = new URLSearchParams({ question: actualQuestion });
+            const activeInterviewQuestion = String(window.priyaActiveInterviewQuestion || "").trim();
+            if (activeInterviewQuestion) {
+                askParams.set("interview_question", activeInterviewQuestion);
+            }
+            const careerSessionId = String(window.priyaCareerSessionId || "").trim();
+            if (careerSessionId) askParams.set("career_session_id", careerSessionId);
+            const askPath = `/ask?${askParams.toString()}`;
             response = await fetch(
-                `/ask?question=${encodeURIComponent(actualQuestion)}`,
+                window.priyaApiUrl
+                    ? window.priyaApiUrl(askPath)
+                    : askPath,
                 { signal: requestController.signal }
             );
         }
@@ -1640,7 +1652,7 @@ function stopPriya() {
 async function testPriyaVoice() {
 
     const testMessage =
-        "Hello. I am Priya. I am ready to bring you the latest news.";
+        "Hello, I'm Priya. How can I help you?";
 
 
     if (answerElement) {

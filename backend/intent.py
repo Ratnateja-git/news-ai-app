@@ -1,6 +1,7 @@
 """Deterministic question classification for Priya."""
 
 import re
+from difflib import SequenceMatcher
 from dataclasses import dataclass
 
 from .identity import CREATOR_NAME
@@ -220,15 +221,15 @@ TELUGU_MOVIE_RECOMMENDATION_PATTERN = re.compile(
 ASSISTANT_INTENT_RESPONSES = (
     (
         r"\bwhat(?:'s| is) your name\b",
-        "My name is Priya. I'm your AI assistant, and I can help you with news, technology, general knowledge, stock market information, and much more.",
+        "I'm Priya, an AI assistant and interview coach.",
     ),
     (
-        r"\bwho are you\b|\btell me about yourself\b",
-        "I'm Priya, your AI assistant. I can help you with news, technology, general knowledge, stock market information, and much more.",
+        r"\bwho are you\b|\bwhat are you\b(?!\s+(?:doing|up to)\b)",
+        "I'm Priya, an AI assistant and interview coach.",
     ),
     (
-        r"\bwhat can you do\b|\bhow can you help me\b|\bcan you help me\b",
-        "I can help you with news, technology, general knowledge, stock market information, and much more.",
+        r"\bwhat can you do\b|\bwhat are your features\b|\bhow can you help me\b|\bcan you help me\b|\btell me about yourself\b",
+        "I can answer general questions, help with current news and market information, and support resume analysis, job matching, and mock interviews when you use the Career tools.",
     ),
     (
         r"\b(?:who (?:created|made|developed|built) (?:you|priya)|who is (?:your|the) (?:creator|developer)|who is behind (?:you|priya))\b",
@@ -236,11 +237,11 @@ ASSISTANT_INTENT_RESPONSES = (
     ),
     (
         r"\bare you (?:an? )?ai\b",
-        "Yes, I'm Priya, an AI assistant. I can help you with news, technology, general knowledge, stock market information, and much more.",
+        "Yes. I'm Priya, an AI assistant and interview coach.",
     ),
     (
         r"\bwhat are you (?:doing|up to)\b",
-        "I'm right here, ready to help. I can look up news, market updates, or just chat — what would you like?",
+        "I'm here and ready to help. What would you like to do?",
     ),
 )
 
@@ -442,6 +443,44 @@ def is_telugu_movie_recommendation(text: str) -> bool:
     """Return True for Telugu-film recommendation queries, never news."""
 
     return bool(TELUGU_MOVIE_RECOMMENDATION_PATTERN.search(text))
+
+
+def _normalize_interview_reference(text: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", " ", (text or "").lower())).strip()
+
+
+def is_active_interview_question_reference(question: str, active_question: str) -> bool:
+    """Recognize a pasted or lightly rephrased copy of the active question."""
+    asked = _normalize_interview_reference(question)
+    active = _normalize_interview_reference(active_question)
+    if not asked or not active:
+        return False
+    if asked == active:
+        return True
+    asked_terms, active_terms = set(asked.split()), set(active.split())
+    overlap = len(asked_terms & active_terms) / max(1, len(asked_terms | active_terms))
+    coverage = len(asked_terms & active_terms) / max(1, min(len(asked_terms), len(active_terms)))
+    return overlap >= 0.72 or coverage >= 0.70 or SequenceMatcher(None, asked, active).ratio() >= 0.82
+
+
+def is_interview_learning_request(question: str, active_question: str = "") -> bool:
+    """Return True only for clear requests to explain an active interview question."""
+    text = question.lower().strip()
+    if is_active_interview_question_reference(question, active_question):
+        return True
+    patterns = (
+        r"\bi (?:do not|don't) understand (?:this|the) question\b",
+        r"^\s*i (?:do not|don't) understand\s*[?.!]*\s*$",
+        r"\b(?:help me understand|what does (?:this|it) mean|what does (?:this|the) question mean|what is (?:this|the) question asking)\b",
+        r"\b(?:what are they (?:asking|expecting)|how should i (?:approach|answer) this)\b",
+        r"\b(?:can you )?(?:explain|simplify|teach) (?:this|it|the question)(?:\s+like i'?m a beginner)?\b",
+        r"\bcan you explain what (?:the )?interviewer is asking\b",
+        r"\bi don't know what (?:the )?interviewer is asking\b",
+        r"\bwhat should i talk about\b",
+        r"^\s*give me (?:a )?(?:hint|an? example)(?:\s+but don't give me the answer)?\s*[?.!]*\s*$",
+        r"^\s*explain it simply\s*[?.!]*\s*$",
+    )
+    return any(re.search(pattern, text) for pattern in patterns)
 
 
 # ============================================================
@@ -757,7 +796,7 @@ def get_assistant_response(question: str) -> str:
         if re.search(pattern, text):
             return response
 
-    return "I'm Priya, your AI assistant. How can I help you today?"
+    return "I'm Priya, an AI assistant and interview coach. How can I help you?"
 
 
 def get_conversational_response(question: str) -> str:

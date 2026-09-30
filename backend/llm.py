@@ -948,7 +948,35 @@ def build_chat_retry_prompt(question: str, memory_context: str) -> str:
     return f"""In 1 to 2 short spoken sentences, answer naturally: {question}"""
 
 
-def ask_chat_model(question: str, memory_context: str = "") -> str:
+def build_interview_help_prompt(question: str, interview_question: str) -> str:
+    """Build context for learning from, rather than answering, an interview question."""
+    return f"""The user is preparing for a mock interview.
+
+CURRENT INTERVIEW QUESTION:
+{interview_question}
+
+USER'S HELP REQUEST:
+{question}
+
+Help the user understand the CURRENT INTERVIEW QUESTION. Do not evaluate or score
+the user, and do not treat their help request as an interview answer. Explain what
+the interviewer expects in clear, educational language. If they ask for a hint,
+give direction without supplying a complete answer. If they ask for an example or
+topics to cover, provide those without advancing the interview.
+
+Answer naturally in short spoken sentences unless the user asks for a fuller lesson."""
+
+
+def build_interview_help_retry_prompt(question: str, interview_question: str) -> str:
+    return f"""Current interview question: {interview_question}
+
+Help request: {question}
+
+Briefly explain what the interviewer is asking. Do not evaluate, score, or give a
+complete answer when the user asks for a hint."""
+
+
+def ask_chat_model(question: str, memory_context: str = "", interview_question: str = "") -> str:
     """Generate Priya's answer for the general conversation fallback.
 
     This is the broad catch-all so Priya never refuses a reasonable
@@ -964,12 +992,20 @@ def ask_chat_model(question: str, memory_context: str = "") -> str:
         return "I'm here — what would you like to talk about?"
 
     try:
-        prompt = build_chat_prompt(question, memory_context)
-        retry_prompt = build_chat_retry_prompt(question, memory_context)
-        _log_llm_input_size("ask_chat_model", prompt, memory_context)
+        if interview_question:
+            prompt = build_interview_help_prompt(question, interview_question)
+            retry_prompt = build_interview_help_retry_prompt(question, interview_question)
+            context = interview_question
+            max_tokens, retry_max_tokens = 220, 120
+        else:
+            prompt = build_chat_prompt(question, memory_context)
+            retry_prompt = build_chat_retry_prompt(question, memory_context)
+            context = memory_context
+            max_tokens, retry_max_tokens = 160, 90
+        _log_llm_input_size("ask_chat_model", prompt, context)
 
         candidate = _generate_validated(
-            prompt, retry_prompt, CHAT_SYSTEM_MESSAGE, 160, 90, perf_label="ask_chat_model"
+            prompt, retry_prompt, CHAT_SYSTEM_MESSAGE, max_tokens, retry_max_tokens, perf_label="ask_chat_model"
         )
 
         if candidate:
