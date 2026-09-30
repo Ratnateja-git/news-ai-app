@@ -95,8 +95,10 @@ def score(p,text):
 
 class JDAnalyzerAgent:
     """Extract a compact, deterministic representation of a job description."""
-    EARLY_TERMS = ("entry-level", "entry level", "fresh graduate", "fresher", "no experience required", "0-1 years", "willing to learn")
-    SENIOR_TERMS = ("senior", "architect", "lead", "principal", "staff")
+    # Include common equivalents so detection is semantic enough for ordinary
+    # JD wording without making a model call for an obvious conflict.
+    EARLY_TERMS = ("entry-level", "entry level", "fresh graduate", "recent graduate", "new graduate", "fresher", "junior-level", "junior level", "graduate trainee", "no experience required", "0-1 years", "willing to learn")
+    SENIOR_TERMS = ("senior", "architect", "lead", "principal", "staff", "experienced")
 
     def analyze(self, description):
         low = description.lower()

@@ -101,6 +101,11 @@ Python, FastAPI
         profile = {"skills": ["python"], "projects": [], "experience": [], "internships": [], "education": []}
         self.assertFalse(analyze_job_description(profile, "Senior Architect. 5+ years experience. Must mentor junior engineers.")["contradiction"]["contradiction_detected"])
 
+    def test_semantic_equivalent_conflict_is_flagged(self):
+        profile = {"skills": ["python"], "projects": [], "experience": [], "internships": [], "education": []}
+        result = analyze_job_description(profile, "Lead platform engineer with 6 years of experience. Recent graduates are encouraged to apply.")
+        self.assertTrue(result["contradiction"]["contradiction_detected"])
+
     def test_conflict_recommendation_never_requests_invented_experience(self):
         profile = {"skills": ["python"], "projects": [], "experience": [], "internships": [], "education": []}
         result = analyze_job_description(profile, "Senior Architect with 5+ years experience. Entry-level candidates welcome.")

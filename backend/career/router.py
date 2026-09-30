@@ -64,7 +64,13 @@ _interviews = {}
 @router.post("/interview/start")
 def start_interview(request: InterviewStartRequest):
     candidate = candidate_or_404(request.candidate_session_id)
-    if request.job_description: candidate["job"] = job(request.job_description)
+    # Preserve contradiction context for API clients that begin an interview
+    # with a JD directly instead of first using /career/jd/analyze.
+    if request.job_description:
+        result = analyze_job_description(candidate["profile"], request.job_description)
+        candidate["job"] = result["job"]
+        try: save_candidate(request.candidate_session_id, candidate)
+        except CareerStorageError as e: raise HTTPException(503,"Career Coach storage is temporarily unavailable. Please try again.") from e
     if not candidate["job"]: raise HTTPException(422, "Provide or parse a job description before starting an interview.")
     from uuid import uuid4
     iid=str(uuid4()); state={"candidate_id":request.candidate_session_id,"type":request.interview_type,"difficulty":request.difficulty,"questions":[],"asked_questions":[],"answers":[],"evaluations":[],"covered_topics":[],"rounds":["project","technical","architecture","problem_solving","fundamentals","behavioral","integration","testing","impact","learning"],"round_index":0}
